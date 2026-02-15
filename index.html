@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para Mi Agus 💗</title>
+    <meta name="description" content="Un juego de Snake especial para Agus">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #3d2f2f;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .game-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 500px;
+            padding: 0 4px;
+        }
+
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #e8c4b8;
+            font-weight: 400;
+        }
+
+        .score {
+            font-size: 16px;
+            font-weight: 600;
+            color: #d4a99a;
+            letter-spacing: 0.5px;
+        }
+
+        canvas {
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,220,200,0.08);
+        }
+
+        /* Message bar */
+        .message-bar {
+            width: 500px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 230, 220, 0.08);
+            border-radius: 12px;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 200, 180, 0.1);
+            transition: all 0.6s ease;
+        }
+
+        .message-bar p {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 16px;
+            color: #e0b8a8;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(8px);
+            animation: fadeInMsg 0.6s ease forwards;
+        }
+
+        @keyframes fadeInMsg {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 24px;
+            margin-top: 4px;
+        }
+
+        .key-hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #a08070;
+            font-size: 12px;
+        }
+
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 220, 200, 0.12);
+            border: 1px solid rgba(255, 200, 180, 0.2);
+            border-radius: 6px;
+            color: #d4a99a;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* Letter overlay */
+        .letter-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(40, 28, 28, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .letter-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .letter-card {
+            background: #fdf5f0;
+            border-radius: 20px;
+            padding: 50px 60px;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            transform: scale(0.9);
+            animation: popIn 0.5s ease forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .letter-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #e8a090, #d48080, #e8a090);
+        }
+
+        @keyframes popIn {
+            to { transform: scale(1); }
+        }
+
+        .letter-card h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 38px;
+            color: #c07060;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .letter-card .msg-line {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 20px;
+            color: #6b4a40;
+            line-height: 1.7;
+            margin-bottom: 6px;
+        }
+
+        .letter-card .love {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: #d47070;
+            margin-top: 20px;
+        }
+
+        .letter-card .continue-hint {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #b09585;
+            margin-top: 30px;
+        }
+
+        .corner-heart {
+            position: absolute;
+            font-size: 22px;
+            opacity: 0.15;
+            color: #c07060;
+        }
+        .corner-heart.tl { top: 18px; left: 22px; }
+        .corner-heart.tr { top: 18px; right: 22px; }
+        .corner-heart.bl { bottom: 18px; left: 22px; }
+        .corner-heart.br { bottom: 18px; right: 22px; }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="header">
+            <span class="title">Para Agus ♥</span>
+            <span class="score" id="score">Corazones: 0 / 25</span>
+        </div>
+
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+        <div class="message-bar" id="messageBar">
+            <p id="messageText">Recolecta corazones para descubrir mensajes...</p>
+        </div>
+
+        <div class="controls">
+            <div class="key-hint"><span class="key">W</span> / <span class="key">↑</span></div>
+            <div class="key-hint"><span class="key">A</span> / <span class="key">←</span></div>
+            <div class="key-hint"><span class="key">S</span> / <span class="key">↓</span></div>
+            <div class="key-hint"><span class="key">D</span> / <span class="key">→</span></div>
+        </div>
+    </div>
+
+    <!-- Final letter overlay -->
+    <div class="letter-overlay" id="letterOverlay">
+        <div class="letter-card">
+            <span class="corner-heart tl">♥</span>
+            <span class="corner-heart tr">♥</span>
+            <span class="corner-heart bl">♥</span>
+            <span class="corner-heart br">♥</span>
+            <h1>Para ti, mi Agus</h1>
+            <p class="msg-line">Te amo mucho mi niña hermosa</p>
+            <p class="msg-line">Eres mi todo, mi corazón late tu nombre, late por ti.</p>
+            <p class="msg-line">Te amo siempre mi amor, 86400 veces al día.</p>
+            <p class="love">Te amo mucho mi naranjita, mi lunita💗🌙</p>
+            <p class="continue-hint">Presiona cualquier tecla para jugar de nuevo mi amorcito</p>
+        </div>
+    </div>
+
+    <script>
+    (() => {
+        // ==================== CONFIG ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+        const CELL = 25;
+        const COLS = W / CELL;
+        const ROWS = H / CELL;
+        const META = 25;
+        const MSG_INTERVAL = 5;
+        const SPEED = 120; // ms
+
+        // Colors
+        const BG          = '#4a3a34';
+        const GRID        = '#55453e';
+        const SNAKE_BODY  = '#a7c4a0'; // Sage green
+        const SNAKE_HEAD  = '#7aaa72'; // Darker sage
+        const HEART_COLOR = '#e07070'; // Soft red/pink
+        const TEXT_COLOR  = '#e8d0c4';
+
+        // Messages to reveal
+        const MESSAGES = [
+            "Eres mi lunita hermosa...",         // 5
+            "Tu risa y tú sonrisa son tan puras...",            // 10
+            "Tú alma es tan hermosa y mágica...",                // 15
+            "Nuestras 4 estrellitas nos esperan...",     // 20
+            "Te amo, mi amorcito, mi agus, mi universo, mi todo...💗💗"                               // 25
+        ];
+
+        // ==================== STATE ====================
+        let snake, dir, nextDir, food, score, gameActive, showingLetter, lastMsg;
+        let interval = null;
+
+        function init() {
+            snake = [];
+            for (let i = 0; i < 3; i++) snake.push({ x: 5 - i, y: 5 });
+            dir = 'RIGHT';
+            nextDir = 'RIGHT';
+            score = 0;
+            gameActive = true;
+            showingLetter = false;
+            lastMsg = -1;
+            spawnFood();
+            updateScore();
+            setMessage("Recolecta corazones para descubrir mensajes...");
+            document.getElementById('letterOverlay').classList.remove('active');
+
+            if (interval) clearInterval(interval);
+            interval = setInterval(tick, SPEED);
+        }
+
+        function spawnFood() {
+            let x, y, ok;
+            do {
+                x = Math.floor(Math.random() * COLS);
+                y = Math.floor(Math.random() * ROWS);
+                ok = true;
+                for (const s of snake) {
+                    if (s.x === x && s.y === y) { ok = false; break; }
+                }
+            } while (!ok);
+            food = { x, y };
+        }
+
+        // ==================== GAME LOOP ====================
+        function tick() {
+            if (!gameActive || showingLetter) return;
+            dir = nextDir;
+            moveSnake();
+            checkCollisions();
+            draw();
+        }
+
+        function moveSnake() {
+            const head = { ...snake[0] };
+            switch (dir) {
+                case 'RIGHT': head.x++; break;
+                case 'LEFT':  head.x--; break;
+                case 'UP':    head.y--; break;
+                case 'DOWN':  head.y++; break;
+            }
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                updateScore();
+                checkMessageUnlock();
+
+                if (score >= META) {
+                    showLetter();
+                } else {
+                    spawnFood();
+                }
+            } else {
+                snake.pop();
+            }
+        }
+
+        function checkCollisions() {
+            const h = snake[0];
+            if (h.x < 0 || h.x >= COLS || h.y < 0 || h.y >= ROWS) {
+                gameOver();
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (snake[i].x === h.x && snake[i].y === h.y) {
+                    gameOver();
+                    break;
+                }
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            draw(); // redraw with overlay
+        }
+
+        // ==================== MESSAGES ====================
+        function checkMessageUnlock() {
+            const msgIndex = Math.floor(score / MSG_INTERVAL) - 1;
+            if (msgIndex >= 0 && msgIndex < MESSAGES.length && msgIndex !== lastMsg) {
+                lastMsg = msgIndex;
+                setMessage(MESSAGES[msgIndex]);
+            }
+        }
+
+        function setMessage(text) {
+            const el = document.getElementById('messageText');
+            el.style.animation = 'none';
+            el.offsetHeight; // trigger reflow
+            el.style.animation = '';
+            el.textContent = text;
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = `Corazones: ${score} / ${META}`;
+        }
+
+        function showLetter() {
+            showingLetter = true;
+            if (interval) clearInterval(interval);
+            setTimeout(() => {
+                document.getElementById('letterOverlay').classList.add('active');
+            }, 200);
+        }
+
+        // ==================== DRAWING ====================
+        function draw() {
+            // Background
+            ctx.fillStyle = BG;
+            ctx.fillRect(0, 0, W, H);
+
+            // Grid
+            ctx.strokeStyle = GRID;
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x <= COLS; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * CELL, 0);
+                ctx.lineTo(x * CELL, H);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= ROWS; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * CELL);
+                ctx.lineTo(W, y * CELL);
+                ctx.stroke();
+            }
+
+            // Heart (food)
+            drawHeart(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, CELL * 0.38);
+
+            // Snake body (continuous stroke)
+            if (snake.length > 1) {
+                ctx.strokeStyle = SNAKE_BODY;
+                ctx.lineWidth = CELL - 6;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(snake[0].x * CELL + CELL / 2, snake[0].y * CELL + CELL / 2);
+                for (let i = 1; i < snake.length; i++) {
+                    ctx.lineTo(snake[i].x * CELL + CELL / 2, snake[i].y * CELL + CELL / 2);
+                }
+                ctx.stroke();
+            }
+
+            // Snake head
+            const hx = snake[0].x * CELL;
+            const hy = snake[0].y * CELL;
+            ctx.fillStyle = SNAKE_HEAD;
+            roundRect(ctx, hx + 2, hy + 2, CELL - 4, CELL - 4, 6);
+
+            // Eyes
+            drawEyes(hx, hy);
+
+            // Game over overlay
+            if (!gameActive && !showingLetter) {
+                ctx.fillStyle = 'rgba(74, 58, 52, 0.85)';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.fillStyle = TEXT_COLOR;
+                ctx.font = '600 36px "Playfair Display", serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('¡Oops!', W / 2, H / 2 - 20);
+
+                ctx.font = '500 16px "Inter", sans-serif';
+                ctx.fillStyle = '#b09585';
+                ctx.fillText('Presiona ESPACIO para reintentar', W / 2, H / 2 + 25);
+                ctx.textAlign = 'start';
+            }
+        }
+
+        function drawHeart(cx, cy, size) {
+            ctx.fillStyle = HEART_COLOR;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - size * 0.4);
+            ctx.bezierCurveTo(cx - size, cy - size * 1.4, cx - size * 1.8, cy + size * 0.3, cx, cy + size * 1.2);
+            ctx.bezierCurveTo(cx + size * 1.8, cy + size * 0.3, cx + size, cy - size * 1.4, cx, cy - size * 0.4);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawEyes(x, y) {
+            const ojoW = 6, ojoH = 6, pupW = 3, pupH = 3, pad = 5;
+            let o1x, o1y, o2x, o2y;
+
+            switch (dir) {
+                case 'RIGHT':
+                    o1x = x + CELL - pad - ojoW; o1y = y + pad;
+                    o2x = x + CELL - pad - ojoW; o2y = y + CELL - pad - ojoH;
+                    break;
+                case 'LEFT':
+                    o1x = x + pad; o1y = y + pad;
+                    o2x = x + pad; o2y = y + CELL - pad - ojoH;
+                    break;
+                case 'UP':
+                    o1x = x + pad; o1y = y + pad;
+                    o2x = x + CELL - pad - ojoW; o2y = y + pad;
+                    break;
+                case 'DOWN':
+                default:
+                    o1x = x + pad; o1y = y + CELL - pad - ojoH;
+                    o2x = x + CELL - pad - ojoW; o2y = y + CELL - pad - ojoH;
+                    break;
+            }
+
+            // White
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(o1x + ojoW/2, o1y + ojoH/2, ojoW/2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(o2x + ojoW/2, o2y + ojoH/2, ojoW/2, 0, Math.PI * 2); ctx.fill();
+
+            // Pupil
+            ctx.fillStyle = '#2e2420';
+            ctx.beginPath(); ctx.arc(o1x + ojoW/2, o1y + ojoH/2, pupW/2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(o2x + ojoW/2, o2y + ojoH/2, pupW/2, 0, Math.PI * 2); ctx.fill();
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // ==================== INPUT ====================
+        document.addEventListener('keydown', (e) => {
+            if (showingLetter) {
+                init();
+                return;
+            }
+
+            if (!gameActive) {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    init();
+                }
+                return;
+            }
+
+            switch (e.code) {
+                case 'ArrowUp':    case 'KeyW': if (dir !== 'DOWN')  nextDir = 'UP';    e.preventDefault(); break;
+                case 'ArrowDown':  case 'KeyS': if (dir !== 'UP')    nextDir = 'DOWN';  e.preventDefault(); break;
+                case 'ArrowLeft':  case 'KeyA': if (dir !== 'RIGHT') nextDir = 'LEFT';  e.preventDefault(); break;
+                case 'ArrowRight': case 'KeyD': if (dir !== 'LEFT')  nextDir = 'RIGHT'; e.preventDefault(); break;
+            }
+        });
+
+        // Touch support for mobile
+        let touchStartX = 0, touchStartY = 0;
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (showingLetter) { init(); return; }
+            if (!gameActive) { init(); return; }
+
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0 && dir !== 'LEFT') nextDir = 'RIGHT';
+                else if (dx < 0 && dir !== 'RIGHT') nextDir = 'LEFT';
+            } else {
+                if (dy > 0 && dir !== 'UP') nextDir = 'DOWN';
+                else if (dy < 0 && dir !== 'DOWN') nextDir = 'UP';
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        // Letter click to restart
+        document.getElementById('letterOverlay').addEventListener('click', () => {
+            init();
+        });
+
+        // ==================== START ====================
+        init();
+        draw();
+    })();
+    </script>
+</body>
+</html>
